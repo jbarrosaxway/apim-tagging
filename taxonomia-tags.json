@@ -1,0 +1,439 @@
+{
+  "taxonomia": {
+    "versao": "1.1",
+    "ultimaAtualizacao": "2024",
+    "descricao": "Taxonomia de tags para Amplify API Management e Amplify Engage",
+    "plataformas": ["Amplify API Management", "Amplify Engage"],
+    "formato": {
+      "descricao": "TagMap é um Map<String, String[]> onde a chave é o nome do grupo de tags e o valor é um array de strings",
+      "json": {
+        "estrutura": "Objeto com chaves (nomes dos grupos de tags) e arrays de valores",
+        "exemplo": "{\n  \"tags\": {\n    \"environment\": [\"production\"],\n    \"criticality\": [\"critical\"],\n    \"project\": [\"api-modernizacao\"]\n  }\n}",
+        "nota": "Este é o formato nativo suportado pelo APIM-CLI"
+      },
+      "yaml": {
+        "estrutura": "Objeto com chaves e arrays de valores (mesma estrutura do JSON)",
+        "exemplo": "tags:\n  environment:\n    - production\n  criticality:\n    - critical\n  project:\n    - api-modernizacao",
+        "alternativa": "Lista simples também é aceita, mas será convertida para o formato objeto",
+        "exemplo_alternativo": "tags:\n  - environment:production\n  - criticality:critical",
+        "nota": "O Jackson ObjectMapper converte automaticamente entre YAML e JSON mantendo a estrutura Map<String, String[]>"
+      },
+      "importante": "O formato recomendado é objeto com chaves e arrays, pois é o formato nativo do TagMap no código Java"
+    },
+    "nota_importante": "Tags complementam metadados. NÃO duplique informações já disponíveis em campos como name, version, path, organization, state, etc.",
+    "categorias": {
+      "environment": {
+        "nome": "Ambiente",
+        "obrigatoria": true,
+        "valores": ["development", "dev", "testing", "test", "qa", "staging", "stage", "production", "prod"],
+        "descricao": "Identifica o ambiente onde o recurso está implantado"
+      },
+      "api-type": {
+        "nome": "Tipo de API",
+        "obrigatoria": false,
+        "recomendacao": "opcional",
+        "valores": ["rest", "soap", "graphql", "event-driven", "odata-v2", "odata-v4", "internal", "external", "partner"],
+        "descricao": "Classifica o tipo técnico da API. Use apenas se não está claro nos metadados (OpenAPI spec)",
+        "nota": "O tipo pode ser inferido dos metadados, mas a tag é útil para classificação rápida e filtros no catálogo",
+        "quando_usar": "Quando precisa filtrar/agrupar APIs por tipo de forma rápida, especialmente no Amplify Engage"
+      },
+      "domain": {
+        "nome": "Domínio Funcional",
+        "obrigatoria": false,
+        "recomendacao": "opcional",
+        "valores": ["customer", "order", "payment", "inventory", "notification", "authentication", "shipping", "product", "petstore", "store", "user"],
+        "descricao": "Identifica o domínio de negócio da API",
+        "nota": "O domínio pode estar na descrição, mas a tag facilita busca e agrupamento por área de negócio no Amplify Engage",
+        "quando_usar": "Para agrupamento de APIs por domínio funcional no catálogo e relatórios de negócio"
+      },
+      "criticality": {
+        "nome": "Criticidade",
+        "obrigatoria": true,
+        "valores": ["critical", "critico", "high", "alto", "medium", "medio", "low", "baixo"],
+        "descricao": "Define o nível de criticidade do recurso"
+      },
+      "business-unit": {
+        "nome": "Unidade de Negócio",
+        "obrigatoria": false,
+        "recomendacao": "altamente-recomendada",
+        "valores": ["financeiro", "vendas", "marketing", "operacoes", "rh", "ti"],
+        "descricao": "Identifica a área de negócio responsável",
+        "nota": "Essencial para relatórios organizacionais e alocação de recursos"
+      },
+      "project": {
+        "nome": "Projeto",
+        "obrigatoria": false,
+        "recomendacao": "altamente-recomendada",
+        "valores": ["projeto-digitalizacao", "api-modernizacao", "integracao-erp", "migracao-cloud"],
+        "descricao": "Associa o recurso a um projeto ou iniciativa",
+        "nota": "Facilita rastreabilidade e agrupamento por iniciativa"
+      },
+      "owner": {
+        "nome": "Proprietário",
+        "obrigatoria": false,
+        "recomendacao": "opcional",
+        "valores": ["team-backend", "team-integration", "team-frontend", "team-devops", "vendor-externo"],
+        "descricao": "Identifica a equipe ou responsável pelo recurso",
+        "nota": "O proprietário pode estar em info.contact.name, mas a tag facilita agrupamento por equipe"
+      },
+      "version": {
+        "nome": "Versão",
+        "obrigatoria": false,
+        "recomendacao": "nao-recomendado",
+        "valores": ["v1", "v2", "v3", "legacy", "beta", "alpha"],
+        "descricao": "Versão do recurso ou API",
+        "nota": "⚠️ ATENÇÃO: A versão já está disponível no metadado info.version do OpenAPI/Swagger. NÃO duplique como tag. Exceção: use 'legacy' ou 'beta' apenas para classificação adicional que não corresponde à versão técnica.",
+        "evitar": true,
+        "alternativa": "Use o campo info.version dos metadados OpenAPI/Swagger"
+      },
+      "compliance": {
+        "nome": "Conformidade",
+        "obrigatoria": false,
+        "recomendacao": "altamente-recomendada",
+        "valores": ["compliant", "non-compliant", "pending-review", "deprecated"],
+        "descricao": "Status de conformidade com políticas e padrões",
+        "nota": "Essencial para governança e identificação de recursos não conformes"
+      },
+      "security-level": {
+        "nome": "Nível de Segurança",
+        "obrigatoria": false,
+        "valores": ["public", "internal", "confidential", "restricted"],
+        "descricao": "Classifica o nível de segurança do recurso"
+      },
+      "access-policy": {
+        "nome": "Política de Acesso",
+        "obrigatoria": false,
+        "valores": ["open", "authenticated", "authorized", "restricted"],
+        "descricao": "Define a política de acesso aplicada"
+      },
+      "sla-tier": {
+        "nome": "Nível de SLA",
+        "obrigatoria": false,
+        "valores": ["gold", "silver", "bronze"],
+        "descricao": "Classifica o nível de SLA acordado"
+      },
+      "monitoring": {
+        "nome": "Monitoramento",
+        "obrigatoria": false,
+        "recomendacao": "opcional",
+        "valores": ["enabled", "disabled"],
+        "descricao": "Indica se o monitoramento está habilitado",
+        "nota": "Pode ser inferido do campo monitorAPI nos inboundProfiles, mas a tag facilita relatórios",
+        "quando_usar": "Quando precisa filtrar APIs por status de monitoramento em relatórios"
+      },
+      "alerting": {
+        "nome": "Alertas",
+        "obrigatoria": false,
+        "recomendacao": "opcional",
+        "valores": ["enabled", "disabled"],
+        "descricao": "Indica se os alertas estão habilitados",
+        "nota": "Útil para classificação e relatórios de APIs com alertas configurados",
+        "quando_usar": "Quando precisa identificar APIs com alertas ativos"
+      },
+      "region": {
+        "nome": "Região",
+        "obrigatoria": false,
+        "valores": ["us-east", "us-west", "sa-east", "eu-west", "ap-southeast"],
+        "descricao": "Identifica a região ou data center"
+      },
+      "regulation": {
+        "nome": "Regulamentação",
+        "obrigatoria": false,
+        "recomendacao": "opcional",
+        "valores": ["lgpd", "gdpr", "pci-dss", "sox", "hipaa"],
+        "descricao": "Identifica regulamentações aplicáveis",
+        "nota": "Uma API pode ter múltiplas regulamentações. Use múltiplos valores se necessário",
+        "quando_usar": "Essencial para APIs que processam dados sensíveis e precisam de conformidade regulatória"
+      },
+      "product": {
+        "nome": "Produto",
+        "obrigatoria": false,
+        "recomendacao": "recomendada-para-engage",
+        "valores": ["ecommerce-platform", "marketplace", "payment-gateway", "analytics-platform", "integration-platform", "customer-portal"],
+        "descricao": "Identifica o produto ao qual o asset (e suas APIs) pertence no Amplify Engage",
+        "nota": "Produtos agrupam assets, que por sua vez agrupam APIs. Hierarquia: Produtos → Assets → APIs. Use esta tag para identificar o produto de alto nível",
+        "quando_usar": "Quando APIs/assets fazem parte de um produto no Amplify Engage Marketplace. Produtos são o nível mais alto de agrupamento",
+        "plataforma": "Amplify Engage",
+        "hierarquia": "Nível mais alto: Produtos agrupam Assets"
+      },
+      "product-component": {
+        "nome": "Componente de Produto",
+        "obrigatoria": false,
+        "recomendacao": "opcional",
+        "valores": ["checkout", "inventory", "shipping", "catalog", "cart", "user-management", "payment", "order"],
+        "descricao": "Identifica o componente funcional específico dentro de um produto",
+        "nota": "Use para classificação adicional quando um produto tem múltiplos componentes funcionais. Pode corresponder ao nome do asset ou ser mais granular",
+        "quando_usar": "Para classificação adicional de componentes funcionais dentro de um produto",
+        "plataforma": "Amplify Engage"
+      },
+      "status": {
+        "nome": "Status Adicional",
+        "obrigatoria": false,
+        "recomendacao": "opcional",
+        "valores": ["deprecated", "beta", "experimental", "stable", "maintenance"],
+        "descricao": "Status adicional além do campo 'state' (unpublished/published/deprecated)",
+        "nota": "Complementa o campo 'state'. Use para classificação mais granular",
+        "quando_usar": "Quando precisa de classificação mais detalhada que o campo state padrão",
+        "evitar_duplicacao": "O campo 'state' já existe. Use esta tag apenas para status adicionais"
+      },
+      "migration": {
+        "nome": "Migração",
+        "obrigatoria": false,
+        "recomendacao": "opcional",
+        "valores": ["migration-target", "migration-source", "migrated", "pending-migration"],
+        "descricao": "Tags relacionadas a processos de migração de APIs",
+        "nota": "Útil durante processos de migração de versão ou modernização",
+        "quando_usar": "Durante processos de migração de APIs, especialmente com upgrade-access"
+      },
+      "asset": {
+        "nome": "Asset",
+        "obrigatoria": false,
+        "recomendacao": "recomendada-para-engage",
+        "valores": ["payment-services", "order-management", "inventory-services", "customer-services", "notification-services", "authentication-services"],
+        "descricao": "Identifica o asset (agrupamento de serviços/APIs) ao qual a API pertence no Amplify Engage",
+        "nota": "Assets são agrupamentos lógicos de APIs relacionadas. Use esta tag nas APIs para indicar a qual asset elas pertencem. Exemplo: 'payment-services' pode agrupar Payment API, Refund API, Payment Status API",
+        "quando_usar": "Quando a API faz parte de um asset no Amplify Engage. Assets agrupam APIs relacionadas em soluções coesas",
+        "plataforma": "Amplify Engage",
+        "hierarquia": "Serviços/APIs → Assets → Produtos"
+      },
+      "asset-owner": {
+        "nome": "Proprietário do Asset",
+        "obrigatoria": false,
+        "recomendacao": "opcional",
+        "valores": ["payment-team", "order-team", "inventory-team", "customer-team", "integration-team", "product-team"],
+        "descricao": "Identifica a equipe responsável pelo asset (agrupamento de APIs)",
+        "nota": "Pode ser diferente do owner individual de cada API. Representa a equipe responsável pelo conjunto de APIs que formam o asset",
+        "quando_usar": "Quando o asset tem uma equipe responsável específica que gerencia o conjunto de APIs",
+        "plataforma": "Amplify Engage"
+      },
+      "asset-status": {
+        "nome": "Status do Asset",
+        "obrigatoria": false,
+        "recomendacao": "opcional",
+        "valores": ["draft", "review", "approved", "published", "archived", "deprecated"],
+        "descricao": "Status do asset no ciclo de vida de governança",
+        "nota": "Status do agrupamento de APIs como um todo. Diferente do campo 'state' individual de cada API",
+        "quando_usar": "Para rastrear o status de governança do asset (conjunto de APIs) no Amplify Engage",
+        "plataforma": "Amplify Engage"
+      }
+    },
+    "exemplos": {
+      "api-producao-critica": {
+        "descricao": "API de pagamento em produção - Amplify API Management",
+        "plataforma": "Amplify API Management",
+        "metadados": {
+          "name": "Payment API",
+          "path": "/api/v1/payment",
+          "version": "2.0.0",
+          "state": "published",
+          "organization": "Finance Organization",
+          "vhost": "api.prod.example.com",
+          "nota": "Essas informações estão nos metadados, não devem ser tags"
+        },
+        "tags_yaml": {
+          "formato_recomendado": {
+            "environment": ["production"],
+            "criticality": ["critical"],
+            "project": ["api-modernizacao"],
+            "business-unit": ["financeiro"],
+            "compliance": ["compliant"],
+            "api-type": ["rest"],
+            "domain": ["payment"],
+            "security-level": ["confidential"],
+            "access-policy": ["authenticated"],
+            "sla-tier": ["gold"],
+            "monitoring": ["enabled"],
+            "alerting": ["enabled"],
+            "region": ["sa-east"],
+            "regulation": ["pci-dss"]
+          },
+          "nota": "Formato objeto (recomendado) - mesmo formato do JSON"
+        },
+        "tags_json": {
+          "environment": ["production"],
+          "criticality": ["critical"],
+          "project": ["api-modernizacao"],
+          "business-unit": ["financeiro"],
+          "compliance": ["compliant"],
+          "api-type": ["rest"],
+          "domain": ["payment"],
+          "security-level": ["confidential"],
+          "access-policy": ["authenticated"],
+          "sla-tier": ["gold"],
+          "monitoring": ["enabled"],
+          "alerting": ["enabled"],
+          "region": ["sa-east"],
+          "regulation": ["pci-dss"]
+        },
+        "nota": "A versão 2.0.0 está no campo 'version' dos metadados, não precisa ser tag"
+      },
+      "api-desenvolvimento": {
+        "descricao": "API de notificações em desenvolvimento - Amplify API Management",
+        "plataforma": "Amplify API Management",
+        "metadados": {
+          "name": "Notification Service API",
+          "path": "/api/v1/notifications",
+          "version": "1.0.0",
+          "state": "unpublished",
+          "organization": "IT Organization",
+          "nota": "Essas informações estão nos metadados, não devem ser tags"
+        },
+        "tags_yaml": {
+          "environment": ["development"],
+          "criticality": ["medium"],
+          "project": ["api-modernizacao"],
+          "business-unit": ["ti"],
+          "compliance": ["pending-review"],
+          "api-type": ["rest"],
+          "domain": ["notification"],
+          "security-level": ["internal"],
+          "access-policy": ["open"]
+        },
+        "tags_json": {
+          "environment": ["development"],
+          "criticality": ["medium"],
+          "project": ["api-modernizacao"],
+          "business-unit": ["ti"],
+          "compliance": ["pending-review"],
+          "api-type": ["rest"],
+          "domain": ["notification"],
+          "security-level": ["internal"],
+          "access-policy": ["open"]
+        }
+      },
+      "api-legacy": {
+        "descricao": "API legada em processo de depreciação - Amplify API Management",
+        "plataforma": "Amplify API Management",
+        "metadados": {
+          "name": "Legacy Order API",
+          "path": "/api/v1/orders",
+          "version": "1.5.2",
+          "state": "deprecated",
+          "retirementDate": "2025-12-31",
+          "nota": "Versão técnica é 1.5.2, mas classificamos como legacy. State já é 'deprecated'"
+        },
+        "tags_yaml": {
+          "environment": ["staging"],
+          "criticality": ["low"],
+          "project": ["api-modernizacao"],
+          "compliance": ["non-compliant"],
+          "api-type": ["soap"],
+          "domain": ["order"],
+          "status": ["deprecated"],
+          "migration": ["migration-source"],
+          "migration-target": ["api-order-v2"]
+        },
+        "tags_json": {
+          "environment": ["staging"],
+          "criticality": ["low"],
+          "project": ["api-modernizacao"],
+          "compliance": ["non-compliant"],
+          "api-type": ["soap"],
+          "domain": ["order"],
+          "status": ["deprecated"],
+          "migration": ["migration-source"],
+          "migration-target": ["api-order-v2"]
+        },
+        "nota": "O campo 'state' já é 'deprecated'. A tag 'status:deprecated' é redundante, mas pode ser útil para filtros. A tag 'migration-target' ajuda no processo de migração."
+      },
+      "api-em-asset-e-produto": {
+        "descricao": "API que faz parte de um asset, que por sua vez faz parte de um produto no Amplify Engage",
+        "plataforma": "Amplify Engage",
+        "hierarquia": "Produto: E-Commerce Platform → Asset: Payment Services → API: Payment Processing API",
+        "metadados": {
+          "name": "Payment Processing API",
+          "path": "/api/v1/payments",
+          "version": "1.0.0",
+          "state": "published",
+          "nota": "API que faz parte do asset 'Payment Services', que está no produto 'E-Commerce Platform'"
+        },
+        "tags_yaml": {
+          "environment": ["production"],
+          "criticality": ["critical"],
+          "product": ["ecommerce-platform"],
+          "asset": ["payment-services"],
+          "domain": ["payment"],
+          "business-unit": ["financeiro"],
+          "compliance": ["compliant"],
+          "api-type": ["rest"],
+          "regulation": ["pci-dss"],
+          "sla-tier": ["gold"]
+        },
+        "tags_json": {
+          "environment": ["production"],
+          "criticality": ["critical"],
+          "product": ["ecommerce-platform"],
+          "asset": ["payment-services"],
+          "domain": ["payment"],
+          "business-unit": ["financeiro"],
+          "compliance": ["compliant"],
+          "api-type": ["rest"],
+          "regulation": ["pci-dss"],
+          "sla-tier": ["gold"]
+        },
+        "nota": "A tag 'asset' identifica o agrupamento de APIs ao qual esta API pertence. A tag 'product' identifica o produto de alto nível. Hierarquia: Produto → Asset → API"
+      },
+      "exemplo-hierarquia-completa": {
+        "descricao": "Exemplo completo mostrando a hierarquia Produto → Asset → APIs",
+        "plataforma": "Amplify Engage",
+        "hierarquia": {
+          "produto": "E-Commerce Platform",
+          "assets": [
+            {
+              "asset": "Payment Services",
+              "apis": ["Payment Processing API", "Refund API", "Payment Status API"],
+              "tags_exemplo": {
+                "product": ["ecommerce-platform"],
+                "asset": ["payment-services"],
+                "domain": ["payment"]
+              }
+            },
+            {
+              "asset": "Order Management",
+              "apis": ["Order Creation API", "Order Status API", "Order Cancellation API"],
+              "tags_exemplo": {
+                "product": ["ecommerce-platform"],
+                "asset": ["order-management"],
+                "domain": ["order"]
+              }
+            }
+          ]
+        },
+        "nota": "Todas as APIs de um asset compartilham a tag 'asset'. Todas as APIs de um produto compartilham a tag 'product'. Isso permite agrupamento e descoberta hierárquica."
+      },
+      "api-petstore-exemplo": {
+        "descricao": "Exemplo baseado no PetStore API dos exemplos do CLI",
+        "plataforma": "Amplify API Management",
+        "metadados": {
+          "name": "PetStore API",
+          "path": "/petstore/v1",
+          "version": "1.0.0",
+          "state": "unpublished",
+          "organization": "API Development",
+          "nota": "Exemplo real dos arquivos de exemplo do APIM-CLI"
+        },
+        "tags_yaml": {
+          "petstore": [],
+          "pets": [],
+          "api": []
+        },
+        "tags_json": {
+          "petstore": [],
+          "pets": [],
+          "api": []
+        },
+        "nota": "Este exemplo mostra tags com grupos vazios (sem valores). No formato objeto, grupos de tags podem ter arrays vazios ou arrays com valores. O formato objeto é sempre usado internamente pelo APIM-CLI."
+      }
+    },
+    "metadados_nao_duplicar": {
+      "campos_identificacao": ["name", "path", "version", "vhost", "apiRoutingKey", "organization"],
+      "campos_descricao": ["summary", "descriptionManual", "descriptionType"],
+      "campos_ciclo_vida": ["state", "retirementDate"],
+      "campos_configuracao": ["backendBasepath", "image", "customProperties"],
+      "campos_seguranca": ["securityProfiles", "corsProfiles", "outboundProfiles", "authenticationProfiles"],
+      "campos_quotas": ["applicationQuota", "systemQuota"],
+      "nota": "Esses campos já existem como metadados. NÃO crie tags para duplicar essas informações."
+    }
+  }
+}
+
