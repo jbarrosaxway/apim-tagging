@@ -60,12 +60,8 @@ Esta documentação deve ser revisada periodicamente para:
 - Incorporar feedback de implementações reais
 - Atualizar exemplos e práticas recomendadas
 
-## 📞 Suporte
-
-Para dúvidas ou sugestões sobre esta documentação, entre em contato com a equipe de Governança de APIs.
-
 ---
 
 **Versão**: 1.0  
-**Última Atualização**: 2024
+**Última Atualização**: 24/11/2025
 
