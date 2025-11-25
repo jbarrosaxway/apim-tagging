@@ -1,7 +1,7 @@
 {
   "taxonomia": {
     "versao": "1.1",
-    "ultimaAtualizacao": "2024",
+    "ultimaAtualizacao": "24/11/2025",
     "descricao": "Taxonomia de tags para Amplify API Management e Amplify Engage",
     "plataformas": ["Amplify API Management", "Amplify Engage"],
     "formato": {
