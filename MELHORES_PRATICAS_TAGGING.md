@@ -1145,7 +1145,7 @@ Organizações que implementam tagging estruturado reportam:
 ---
 
 **Versão**: 1.0  
-**Última Atualização**: 2024  
+**Última Atualização**: 24/11/2025  
 **Autor**: [Nome do Autor/Equipe]  
 **Aprovação**: [Nome do Aprovador]
 
