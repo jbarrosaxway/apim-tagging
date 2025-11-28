@@ -28,6 +28,14 @@ Arquivo estruturado em JSON contendo:
 - Exemplos de conjuntos de tags
 - Útil para automação e integração com ferramentas
 
+### 4. [Padrão de Nomenclatura para Headers com Selectors](./PADRAO_HEADERS_SELECTORS.md)
+Documentação sobre o padrão de nomenclatura para headers com selectors no Axway API Manager:
+- Convenção `custom-<nome-header>-selector`
+- Processamento automático de vaults AWS
+- Sintaxe de selectors com expressões ternárias
+- Exemplos práticos (simples e aninhados)
+- Fluxo visual completo
+
 ## 🎯 Objetivo
 
 Esta documentação foi criada para:
@@ -44,6 +52,7 @@ Esta documentação foi criada para:
 
 ## 📋 Principais Categorias de Tags
 
+### Tags para APIs
 - **Ambiente**: Identificação do ambiente (dev, test, stage, prod)
 - **Tipo de API**: Classificação técnica (REST, SOAP, GraphQL)
 - **Domínio**: Área funcional (payment, order, customer)
@@ -52,6 +61,12 @@ Esta documentação foi criada para:
 - **Segurança**: Nível de segurança e políticas de acesso
 - **Conformidade**: Status de conformidade e regulamentações
 - **Monitoramento**: Configurações de SLA e alertas
+
+### Padrão de Nomenclatura para Headers com Selectors
+- **Convenção**: `custom-<nome-header>-selector` para headers dinâmicos
+- **Processamento Automático**: Valores com prefixo `vault://aws/` acionam filtro AWS Secrets Manager
+- **Selectors**: Expressões ternárias para mapeamento dinâmico de valores
+- **Exemplos**: Selectors simples e ternários aninhados para múltiplas condições
 
 ## 🔄 Manutenção
 
