@@ -9,8 +9,10 @@
 2. [Padrão de Nomenclatura](#padrão-de-nomenclatura-para-headers-com-selectors)
 3. [Sintaxe do Selector](#sintaxe-do-selector)
 4. [Processamento Automático de Vaults AWS](#processamento-automático-de-vaults-aws)
-5. [Exemplos Práticos](#exemplos-práticos)
-6. [Fluxo Visual](#fluxo-visual)
+5. [Processamento em Lote com Loop](#processamento-em-lote-com-loop)
+6. [Headers de Trânsito](#headers-de-trânsito)
+7. [Exemplos Práticos](#exemplos-práticos)
+8. [Fluxo Visual](#fluxo-visual)
 
 ---
 
@@ -167,6 +169,159 @@ ${http.headers['Product-Type'] == 'PRODUCT_A' ? 'vault://aws/my-organization/cli
 - O prefixo `vault://aws/` é **obrigatório** para acionar o filtro de recuperação de secret
 - O caminho após `vault://aws/` deve corresponder ao caminho configurado no AWS Secrets Manager
 - A política de roteamento deve ter o filtro AWS Secrets Manager configurado e habilitado
+
+---
+
+## 🔄 Processamento em Lote com Loop
+
+### Como Funciona o Processamento em Lote
+
+Quando há **múltiplos headers** com o padrão `custom-<nome-header>-selector`, a política de roteamento processa todos eles de forma automática usando um **filtro de loop**.
+
+**Fluxo de Processamento em Lote:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  1. Extração de Headers com Padrão                      │
+│     ┌────────────────────────────────────────────────┐  │
+│     │ Busca todos os headers que começam com:        │  │
+│     │   custom-*                                     │  │
+│     │   E terminam com:                              │  │
+│     │   -selector                                    │  │
+│     │                                                │  │
+│     │ Headers encontrados:                          │  │
+│     │   - custom-client_id-selector                 │  │
+│     │   - custom-access_token-selector               │  │
+│     │   - custom-api_key-selector                    │  │
+│     └────────────────────────────────────────────────┘  │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│  2. Criação da Lista                                     │
+│     Lista de Headers:                                   │
+│     [                                                    │
+│       'custom-client_id-selector',                     │
+│       'custom-access_token-selector',                  │
+│       'custom-api_key-selector'                         │
+│     ]                                                   │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│  3. Loop de Processamento                               │
+│     ┌────────────────────────────────────────────────┐  │
+│     │ Para cada header na lista:                    │  │
+│     │                                                │  │
+│     │ ITERAÇÃO 1: custom-client_id-selector         │  │
+│     │   1. Extrai nome: client_id                   │  │
+│     │   2. Avalia selector                          │  │
+│     │   3. Se valor começa com vault://aws/:        │  │
+│     │      → Recupera secret do AWS                 │  │
+│     │   4. Define header: client_id = <valor>       │  │
+│     │   5. Remove header de trânsito                │  │
+│     │                                                │  │
+│     │ ITERAÇÃO 2: custom-access_token-selector      │  │
+│     │   1. Extrai nome: access_token                │  │
+│     │   2. Avalia selector                          │  │
+│     │   3. Se valor começa com vault://aws/:        │  │
+│     │      → Recupera secret do AWS                 │  │
+│     │   4. Define header: access_token = <valor>    │  │
+│     │   5. Remove header de trânsito                │  │
+│     │                                                │  │
+│     │ ITERAÇÃO 3: custom-api_key-selector            │  │
+│     │   ... (mesmo processo)                        │  │
+│     └────────────────────────────────────────────────┘  │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│  4. Resultado Final                                      │
+│     Request para Backend:                               │
+│     Headers:                                             │
+│       ✅ client_id: <valor recuperado>                  │
+│       ✅ access_token: <valor recuperado>               │
+│       ✅ api_key: <valor recuperado>                    │
+│       ❌ custom-*-selector: (todos removidos)            │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Exemplo Prático de Processamento em Lote
+
+**Configuração no API Manager:**
+
+```
+OUTBOUND PARAMETER: custom-client_id-selector
+OUTBOUND VALUE: ${http.headers['Product-Type'] == 'PRODUCT_A' ? 'vault://aws/my-org/client_id_a' : 'vault://aws/my-org/client_id_default'}
+
+OUTBOUND PARAMETER: custom-access_token-selector
+OUTBOUND VALUE: ${http.headers['Product-Type'] == 'PRODUCT_A' ? 'vault://aws/my-org/access_token_a' : 'vault://aws/my-org/access_token_default'}
+
+OUTBOUND PARAMETER: custom-api_key-selector
+OUTBOUND VALUE: ${http.headers['Product-Type'] == 'PRODUCT_A' ? 'vault://aws/my-org/api_key_a' : 'vault://aws/my-org/api_key_default'}
+```
+
+**Processamento na Política de Roteamento:**
+
+1. **Extração:**
+   - Busca todos os headers que começam com `custom-` e terminam com `-selector`
+   - Encontra: `custom-client_id-selector`, `custom-access_token-selector`, `custom-api_key-selector`
+   - Cria lista: `['custom-client_id-selector', 'custom-access_token-selector', 'custom-api_key-selector']`
+
+2. **Loop - Iteração 1 (custom-client_id-selector):**
+   - Extrai nome: `client_id`
+   - Avalia selector: `${http.headers['Product-Type'] == 'PRODUCT_A' ? ...}`
+   - Resultado: `'vault://aws/my-org/client_id_a'`
+   - Detecta prefixo `vault://aws/` → **Aciona filtro AWS**
+   - Recupera secret: `abc123xyz`
+   - Define header: `client_id = abc123xyz`
+   - Remove header de trânsito: `custom-client_id-selector` ❌
+
+3. **Loop - Iteração 2 (custom-access_token-selector):**
+   - Extrai nome: `access_token`
+   - Avalia selector: `${http.headers['Product-Type'] == 'PRODUCT_A' ? ...}`
+   - Resultado: `'vault://aws/my-org/access_token_a'`
+   - Detecta prefixo `vault://aws/` → **Aciona filtro AWS**
+   - Recupera secret: `def456uvw`
+   - Define header: `access_token = def456uvw`
+   - Remove header de trânsito: `custom-access_token-selector` ❌
+
+4. **Loop - Iteração 3 (custom-api_key-selector):**
+   - Extrai nome: `api_key`
+   - Avalia selector: `${http.headers['Product-Type'] == 'PRODUCT_A' ? ...}`
+   - Resultado: `'vault://aws/my-org/api_key_a'`
+   - Detecta prefixo `vault://aws/` → **Aciona filtro AWS**
+   - Recupera secret: `ghi789rst`
+   - Define header: `api_key = ghi789rst`
+   - Remove header de trânsito: `custom-api_key-selector` ❌
+
+**Resultado Final:**
+
+```
+Request para Backend:
+  Headers:
+    ✅ client_id: abc123xyz
+    ✅ access_token: def456uvw
+    ✅ api_key: ghi789rst
+    ❌ custom-client_id-selector: (removido)
+    ❌ custom-access_token-selector: (removido)
+    ❌ custom-api_key-selector: (removido)
+```
+
+### Vantagens do Processamento em Lote
+
+- ✅ **Eficiência:** Processa todos os headers de uma vez
+- ✅ **Consistência:** Todos os headers seguem o mesmo fluxo
+- ✅ **Manutenibilidade:** Fácil adicionar novos headers seguindo o padrão
+- ✅ **Performance:** Recupera secrets em paralelo quando possível
+- ✅ **Automação:** Não precisa configurar cada header individualmente na política
+
+### ⚠️ Importante
+
+- O filtro de loop deve processar os headers **na ordem** em que aparecem
+- Cada iteração do loop é **independente** - se uma falhar, as outras continuam
+- Os secrets são recuperados **sequencialmente** para cada header que começa com `vault://aws/`
+- Todos os headers de trânsito são removidos **após** o processamento completo
 
 ---
 
