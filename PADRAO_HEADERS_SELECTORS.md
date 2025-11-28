@@ -51,9 +51,9 @@ custom-<nome-header>-selector
 │  OUTBOUND PARAMETER    │ TYPE │ OUTBOUND VALUE         │
 ├─────────────────────────────────────────────────────────┤
 │  custom-client_id-sel  │header│ ${http.headers['Product-│
-│                        │      │ Type'] == 'DIGIO' ?     │
+│                        │      │ Type'] == 'PRODUCT_A' ? │
 │                        │      │ 'vault://.../client_   │
-│                        │      │ id_digio' : ...}        │
+│                        │      │ id_a' : ...}            │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -63,12 +63,12 @@ custom-<nome-header>-selector
 - **OUTBOUND PARAMETER:** `custom-client_id-selector`
 - **PARAMETER TYPE:** `header`
 - **REQUIRED:** `true` (toggle ativado)
-- **OUTBOUND VALUE:** `${http.headers['Product-Type'] == 'DIGIO' ? 'vault://aws/.../client_id_digio' : 'vault://aws/.../client_id_default'}`
+- **OUTBOUND VALUE:** `${http.headers['Product-Type'] == 'PRODUCT_A' ? 'vault://aws/.../client_id_a' : 'vault://aws/.../client_id_default'}`
 
 **Processamento na Política de Roteamento:**
 1. Lê o header outbound: `custom-client_id-selector`
 2. Extrai o nome: remove `custom-` e `-selector` → `client_id`
-3. Avalia o selector: `${http.headers['Product-Type'] == 'DIGIO' ? ...}`
+3. Avalia o selector: `${http.headers['Product-Type'] == 'PRODUCT_A' ? ...}`
 4. **Se o valor resultante começar com `vault://aws/`:** A política automaticamente chama o filtro de recuperação de secret da AWS
 5. Define header para backend: `client_id = <valor recuperado do vault ou valor literal>`
 6. **Remove header de trânsito:** O header `custom-client_id-selector` é **removido** e não é enviado para o backend
@@ -113,8 +113,8 @@ Quando o valor resultante do selector **começa com `vault://aws/`**, a polític
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  1. Avalia o Selector                                    │
-│     ${http.headers['Product-Type'] == 'DIGIO' ? ...}   │
-│     → Resultado: 'vault://aws/.../client_id_digio'       │
+│     ${http.headers['Product-Type'] == 'PRODUCT_A' ? ...}│
+│     → Resultado: 'vault://aws/.../client_id_a'           │
 └────────────────────┬────────────────────────────────────┘
                      │
                      ▼
@@ -129,7 +129,7 @@ Quando o valor resultante do selector **começa com `vault://aws/`**, a polític
 │  3. Chama Filtro AWS Secrets Manager                     │
 │     ┌────────────────────────────────────────────────┐  │
 │     │ Filtro: AWS Secrets Manager                    │  │
-│     │ Path: vault://aws/.../client_id_digio          │  │
+│     │ Path: vault://aws/.../client_id_a              │  │
 │     │ → Recupera secret do AWS Secrets Manager        │  │
 │     │ → Retorna valor do secret                       │  │
 │     └────────────────────────────────────────────────┘  │
@@ -146,16 +146,16 @@ Quando o valor resultante do selector **começa com `vault://aws/`**, a polític
 
 **Selector:**
 ```
-${http.headers['Product-Type'] == 'DIGIO' ? 'vault://aws/pier-labs-kong/client_id_digio' : 'vault://aws/pier-labs-kong/client_id_default'}
+${http.headers['Product-Type'] == 'PRODUCT_A' ? 'vault://aws/my-organization/client_id_a' : 'vault://aws/my-organization/client_id_default'}
 ```
 
 **Processamento:**
-1. **Avalia condição:** `Product-Type == 'DIGIO'` → `true`
-2. **Resultado do selector:** `'vault://aws/pier-labs-kong/client_id_digio'`
+1. **Avalia condição:** `Product-Type == 'PRODUCT_A'` → `true`
+2. **Resultado do selector:** `'vault://aws/my-organization/client_id_a'`
 3. **Detecta prefixo:** Valor começa com `vault://aws/` → **Aciona filtro AWS**
 4. **Filtro AWS Secrets Manager:**
    - Conecta ao AWS Secrets Manager
-   - Recupera o secret no caminho: `pier-labs-kong/client_id_digio`
+   - Recupera o secret no caminho: `my-organization/client_id_a`
    - Retorna o valor do secret (ex: `abc123xyz`)
 5. **Define header:** `client_id = abc123xyz`
 
@@ -182,8 +182,8 @@ Os headers com o padrão `custom-<nome-header>-selector` são **headers de trân
 ```
 Request Interno:
   Headers:
-    - custom-client_id-selector: ${http.headers['Product-Type'] == 'DIGIO' ? 'vault://aws/.../client_id_digio' : 'vault://aws/.../client_id_default'}
-    - Product-Type: DIGIO
+    - custom-client_id-selector: ${http.headers['Product-Type'] == 'PRODUCT_A' ? 'vault://aws/.../client_id_a' : 'vault://aws/.../client_id_default'}
+    - Product-Type: PRODUCT_A
 ```
 
 **Durante o Processamento:**
@@ -198,7 +198,7 @@ Request Interno:
 Request para Backend:
   Headers:
     ✅ client_id: abc123xyz (valor recuperado do vault)
-    ✅ Product-Type: DIGIO
+    ✅ Product-Type: PRODUCT_A
     ❌ custom-client_id-selector: (removido, não enviado)
 ```
 
@@ -216,7 +216,7 @@ Request para Backend:
 │  ANTES DO PROCESSAMENTO                                 │
 │  Headers:                                               │
 │    - custom-client_id-selector: ${...}                  │
-│    - Product-Type: DIGIO                                │
+│    - Product-Type: PRODUCT_A                             │
 └────────────────────┬────────────────────────────────────┘
                      │
                      ▼ Processamento
@@ -224,7 +224,7 @@ Request para Backend:
 │  DURANTE O PROCESSAMENTO                               │
 │  1. Lê custom-client_id-selector                        │
 │  2. Extrai: client_id                                   │
-│  3. Avalia selector → 'vault://aws/.../client_id_digio' │
+│  3. Avalia selector → 'vault://aws/.../client_id_a'   │
 │  4. Recupera do vault → 'abc123xyz'                    │
 │  5. Define: client_id = 'abc123xyz'                    │
 │  6. Remove: custom-client_id-selector ❌               │
@@ -235,7 +235,7 @@ Request para Backend:
 │  APÓS O PROCESSAMENTO (Request para Backend)            │
 │  Headers:                                               │
 │    ✅ client_id: abc123xyz                              │
-│    ✅ Product-Type: DIGIO                                │
+│    ✅ Product-Type: PRODUCT_A                            │
 │    ❌ custom-client_id-selector: (removido)             │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -249,14 +249,14 @@ Request para Backend:
 **Configuração:**
 - **OUTBOUND PARAMETER:** `custom-client_id-selector`
 - **PARAMETER TYPE:** `header`
-- **OUTBOUND VALUE:** `${http.headers['Product-Type'] == 'DIGIO' ? 'vault://aws/.../client_id_digio' : 'vault://aws/.../client_id_default'}`
+- **OUTBOUND VALUE:** `${http.headers['Product-Type'] == 'PRODUCT_A' ? 'vault://aws/.../client_id_a' : 'vault://aws/.../client_id_default'}`
 
 **Resultado:**
 - **Header enviado ao backend:** `client_id`
 - **Valor:** Depende do valor do header `Product-Type` na requisição
 
 **Lógica:**
-- Se `Product-Type == 'DIGIO'` → usa `vault://aws/.../client_id_digio`
+- Se `Product-Type == 'PRODUCT_A'` → usa `vault://aws/.../client_id_a`
 - Senão → usa `vault://aws/.../client_id_default`
 
 ---
@@ -266,12 +266,12 @@ Request para Backend:
 **Configuração:**
 - **OUTBOUND PARAMETER:** `custom-client_id-selector`
 - **PARAMETER TYPE:** `header`
-- **OUTBOUND VALUE:** `${http.headers['Product-Type'] == 'DIGIO' ? 'vault://aws/.../client_id_digio' : (http.headers['Product-Type'] == 'UBER' ? 'vault://aws/.../client_id_uber' : (http.headers['Product-Type'] == 'PAYPAL' ? 'vault://aws/.../client_id_paypal' : 'vault://aws/.../client_id_default'))}`
+- **OUTBOUND VALUE:** `${http.headers['Product-Type'] == 'PRODUCT_A' ? 'vault://aws/.../client_id_a' : (http.headers['Product-Type'] == 'PRODUCT_B' ? 'vault://aws/.../client_id_b' : (http.headers['Product-Type'] == 'PRODUCT_C' ? 'vault://aws/.../client_id_c' : 'vault://aws/.../client_id_default'))}`
 
 **Lógica do Ternário Aninhado (equivalente a IF-ELSE IF-ELSE IF-ELSE):**
-1. **IF** `Product-Type == 'DIGIO'` → usa `client_id_digio`
-2. **ELSE IF** `Product-Type == 'UBER'` → usa `client_id_uber`
-3. **ELSE IF** `Product-Type == 'PAYPAL'` → usa `client_id_paypal`
+1. **IF** `Product-Type == 'PRODUCT_A'` → usa `client_id_a`
+2. **ELSE IF** `Product-Type == 'PRODUCT_B'` → usa `client_id_b`
+3. **ELSE IF** `Product-Type == 'PRODUCT_C'` → usa `client_id_c`
 4. **ELSE** → usa `client_id_default`
 
 **Resultado:**
@@ -287,11 +287,11 @@ Request para Backend:
 ```
 OUTBOUND PARAMETER: custom-client_id-selector
 PARAMETER TYPE: header
-OUTBOUND VALUE: ${http.headers['Product-Type'] == 'DIGIO' ? 'vault://aws/.../client_id_digio' : 'vault://aws/.../client_id_default'}
+OUTBOUND VALUE: ${http.headers['Product-Type'] == 'PRODUCT_A' ? 'vault://aws/.../client_id_a' : 'vault://aws/.../client_id_default'}
 
 OUTBOUND PARAMETER: custom-access_token-selector
 PARAMETER TYPE: header
-OUTBOUND VALUE: ${http.headers['Product-Type'] == 'DIGIO' ? 'vault://aws/.../access_token_digio' : 'vault://aws/.../access_token_default'}
+OUTBOUND VALUE: ${http.headers['Product-Type'] == 'PRODUCT_A' ? 'vault://aws/.../access_token_a' : 'vault://aws/.../access_token_default'}
 ```
 
 **Resultado:**
